@@ -1,22 +1,27 @@
 package tw.android;
 
-import javax.activation.DataHandler;     
-import javax.activation.DataSource;     
-import javax.mail.Message;     
-import javax.mail.PasswordAuthentication;     
-import javax.mail.Session;     
-import javax.mail.Transport;     
-import javax.mail.internet.InternetAddress;     
-import javax.mail.internet.MimeMessage;     
-  
-import android.util.Log;  
-  
-import java.io.ByteArrayInputStream;     
-import java.io.IOException;     
-import java.io.InputStream;     
-import java.io.OutputStream;     
-import java.security.Security;     
-import java.util.Properties;     
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.security.Security;
+import java.util.Properties;
+
+import javax.activation.DataHandler;
+import javax.activation.DataSource;
+import javax.activation.FileDataSource;
+import javax.mail.Message;
+import javax.mail.Multipart;
+import javax.mail.PasswordAuthentication;
+import javax.mail.Session;
+import javax.mail.Transport;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeBodyPart;
+import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
+
+import android.util.Log;
   
 public class GMailSender extends javax.mail.Authenticator {     
     private String mailhost = "smtp.gmail.com";     
@@ -61,7 +66,33 @@ public class GMailSender extends javax.mail.Authenticator {
         DataHandler handler = new DataHandler(new ByteArrayDataSource(body.getBytes(), "text/plain"));     
         message.setSender(new InternetAddress(sender));     
         message.setSubject(subject);     
-        message.setDataHandler(handler);     
+        message.setDataHandler(handler);
+        
+        /*******2015.09.29 附加圖片*******/
+        // create multipart
+        Multipart multipart = new MimeMultipart();
+
+        // create bodypart with image and set content-id
+        MimeBodyPart messageBodyPart = new MimeBodyPart();
+        File testImage = new File("/storage/emulated/0/Download/", "test.png"); //手機檔案位置,檔案名稱
+        DataSource source = new FileDataSource(testImage);
+        messageBodyPart.setDataHandler(new DataHandler(source));
+        messageBodyPart.setFileName("image.png");
+        messageBodyPart.setDisposition(MimeBodyPart.INLINE);
+        messageBodyPart.setHeader("Content-ID","<vogue>");
+        multipart.addBodyPart(messageBodyPart);
+
+        // create bodypart with html content and reference to the content-id
+        messageBodyPart = new MimeBodyPart();
+        String htmlText = "<img src=\"cid:vogue\">";
+        messageBodyPart.setContent(htmlText, "text/html");
+        multipart.addBodyPart(messageBodyPart);
+
+        // add multipart to message
+        message.setContent(multipart);
+        
+        /***************參考來源 http://goo.gl/OAZn5q ****************/
+        
         if (recipients.indexOf(',') > 0)     
             message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(recipients));     
         else    
